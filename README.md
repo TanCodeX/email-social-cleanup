@@ -21,7 +21,7 @@ Select the folder you want to analyze (e.g., Inbox, Sent, Drafts).
 Click Analyze Emails to categorize your emails.
 Click Analyze Social Media to analyze Facebook and Instagram engagement (Meta Developer API access is required).
 
-Setup
+Setup:
 Gmail API Setup
 Go to the Google Cloud Console.
 Create a new project and enable the Gmail API.
