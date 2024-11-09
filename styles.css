@@ -1,0 +1,173 @@
+/* Popup Body Styles */
+body {
+  font-family: "Georgia", serif;
+  text-align: center;
+  background: linear-gradient(
+    90deg,
+    rgba(2, 0, 36, 1) 0%,
+    rgba(255, 102, 0, 1) 35%,
+    rgba(0, 212, 255, 1) 100%
+  );
+  background-image: linear-gradient(to right, #ffecd2 0%, #fcb69f 100%);
+  margin: 0;
+  padding: 30px; /* More padding for spaciousness */
+  width: 800px; /* Increased width for the larger popup */
+  min-height: 350px; /* Increased minimum height */
+  overflow: hidden;
+  border-radius: 16px; /* Larger curved edges */
+  box-sizing: border-box; /* Ensures padding doesn't affect width */
+}
+
+/* Title Styles */
+h2 {
+  color: #333;
+  margin-bottom: 15px;
+}
+
+/* Prompt Text Styles */
+p {
+  color: #555;
+  font-size: 16px;
+  margin-bottom: 15px;
+}
+
+/* Button Container to Align Buttons Horizontally */
+.button-container {
+  display: flex;
+  justify-content: center;
+  gap: 10px; /* Space between buttons */
+  margin-bottom: 20px; /* Space below the buttons */
+}
+
+/* Button Styles */
+button {
+  background-color: #8336ff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  border-radius: 4px;
+  width: 150px; /* Uniform button width */
+}
+
+button:hover {
+  background-color: #6100fd;
+}
+
+/* Select Box Styles */
+#folderSelect {
+  margin-bottom: 20px;
+  padding: 10px; /* Padding for better appearance */
+  font-size: 16px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  width: 100%; /* Full width */
+  max-width: 200px; /* Limit the width */
+}
+
+/* Loading Message Styles */
+#loadingMessage {
+  font-size: 16px;
+  color: #555;
+}
+
+/* Output Table Styles */
+#output {
+  margin-top: 20px;
+  text-align: left;
+  display: flex;
+  justify-content: center;
+  max-height: 250px; /* Set a max height for scrolling */
+  overflow-y: auto; /* Allow vertical scrolling */
+  width: 100%;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%; /* Set to 100% to fit the available width */
+  max-width: 100%; /* Ensure it doesn’t overflow */
+  background-color: #fff;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 12px; /* Larger rounded corners for the table */
+  table-layout: fixed; /* Ensures columns are evenly distributed */
+}
+
+/* Define equal width for each column */
+table th,
+table td {
+  padding: 15px;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+}
+
+table th {
+  background-color: #8336ff;
+  color: white;
+  font-weight: bold;
+}
+
+/* Column Width Adjustments */
+table th:nth-child(1),
+table td:nth-child(1) {
+  width: 40%;
+}
+table th:nth-child(2),
+table td:nth-child(2) {
+  width: 45%;
+}
+table th:nth-child(3),
+table td:nth-child(3) {
+  width: 25%;
+}
+table th:nth-child(4),
+table td:nth-child(4) {
+  width: 25%;
+}
+table th:nth-child(5),
+table td:nth-child(5) {
+  width: 15%;
+}
+table th:nth-child(6),
+table td:nth-child(6) {
+  width: 15%;
+}
+
+table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* Styling the "Unsubscribe" button */
+#unsubscribeEmail {
+  background-color: #ff5733; /* A different color for unsubscribe button */
+  color: white;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  text-align: center;
+  width: auto; /* Adjust width based on content */
+  display: inline-block; /* Keeps it inline with other table elements */
+}
+
+#unsubscribeEmail:hover {
+  background-color: #c0392b; /* Darker color on hover */
+}
+
+/* Add some spacing for each row to improve readability */
+table tr {
+  margin-bottom: 10px;
+}
+
+table td,
+table th {
+  padding: 12px; /* Added padding to table cells for better visual spacing */
+}
+
+/* Footer or any additional text alignment (if needed) */
+footer {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 14px;
+  color: #777;
+}

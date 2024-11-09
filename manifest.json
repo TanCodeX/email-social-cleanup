@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Email & Social Media Cleanup Assistant",
+  "version": "1.0",
+  "description": "Helps declutter emails and social media feeds by identifying old and redundant content. All data is processed locally to ensure privacy and security.",
+  "permissions": ["storage", "identity", "identity.email", "tabs", "activeTab"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "oauth2": {
+    "client_id": "472845925856-8q4k3od7r8bbakse660tajq1stqmt230.apps.googleusercontent.com",
+    "scopes": ["https://www.googleapis.com/auth/gmail.readonly"]
+  },
+  "host_permissions": ["https://www.googleapis.com/*"]
+}

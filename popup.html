@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Email & Social Media Cleanup Assistant</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <h2>Email & Social Media Cleanup</h2>
+
+    <p>Please select what you would like to analyze:</p>
+    <select id="folderSelect">
+      <option value="inbox">Inbox</option>
+      <option value="sent">Sent</option>
+      <option value="drafts">Drafts</option>
+      <!-- Add other folders here -->
+    </select>
+    <div class="button-container">
+      <button id="analyzeEmail">Analyze Emails</button>
+      <button id="analyzeSocial">Analyze Social Media</button>
+      <button id="unsubscribeEmail" style="display: none">
+        Unsubscribe from Newsletter
+      </button>
+    </div>
+    <div id="loadingMessage" style="display: none">Please wait, loading...</div>
+    <div id="output" style="display: none">
+      <table id="emailTable"></table>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
