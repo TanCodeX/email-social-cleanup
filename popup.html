@@ -15,6 +15,7 @@
       <option value="drafts">Drafts</option>
       <!-- Add other folders here -->
     </select>
+
     <div class="button-container">
       <button id="analyzeEmail">Analyze Emails</button>
       <button id="analyzeSocial">Analyze Social Media</button>
@@ -22,9 +23,13 @@
         Unsubscribe from Newsletter
       </button>
     </div>
+
     <div id="loadingMessage" style="display: none">Please wait, loading...</div>
+
     <div id="output" style="display: none">
-      <table id="emailTable"></table>
+      <table id="emailTable">
+        <!-- Table content will be dynamically generated -->
+      </table>
     </div>
 
     <script src="popup.js"></script>

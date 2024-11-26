@@ -12,78 +12,63 @@ document.addEventListener("DOMContentLoaded", init);
 
 // Handle analyze button clicks
 function handleAnalyzeClick(type) {
-  // Show loading message and hide output
-  toggleLoading(true);
-  clearOutput();
+  toggleLoading(true); // Show loading message
+  clearOutput(); // Clear previous output
 
   if (type === "email") {
     analyzeEmails();
   } else if (type === "social") {
-    analyzeSocialMedia();
+    analyzeSocialMedia(); // Assume `analyzeSocialMedia()` is implemented elsewhere
   }
 }
 
+// Analyze selected email folder
 function analyzeEmails() {
   const selectedFolders = getSelectedFolders();
 
   if (!selectedFolders) {
-    document.getElementById("loadingMessage").style.display = "none";
-    document.getElementById("output").textContent =
-      "No folder selected. Please select a folder.";
-    document.getElementById("output").style.display = "block";
-    return; // Exit if no folder is selected
+    displayError("No folder selected. Please select a folder.");
+    return;
   }
 
-  // Get the token inside this function
-  chrome.identity.getAuthToken({ interactive: true }, function (token) {
+  chrome.identity.getAuthToken({ interactive: true }, (token) => {
     if (chrome.runtime.lastError || !token) {
-      console.error("Error retrieving token:", chrome.runtime.lastError);
-      document.getElementById(
-        "output"
-      ).textContent = `Failed to retrieve Google token: ${
-        chrome.runtime.lastError
-          ? chrome.runtime.lastError.message
-          : "Unknown error"
-      }`;
-      document.getElementById("loadingMessage").style.display = "none";
+      displayError(
+        `Failed to retrieve Google token: ${
+          chrome.runtime.lastError?.message || "Unknown error"
+        }`
+      );
       return;
     }
 
-    // Log the token for debugging
     console.log("Retrieved token:", token);
 
-    chrome.identity.removeCachedAuthToken({ token }, function () {
-      chrome.identity.getAuthToken({ interactive: true }, function (newToken) {
+    // Remove cached token and get a new one
+    chrome.identity.removeCachedAuthToken({ token }, () => {
+      chrome.identity.getAuthToken({ interactive: true }, (newToken) => {
         if (chrome.runtime.lastError || !newToken) {
-          console.error(
-            "Error retrieving new token:",
-            chrome.runtime.lastError
+          displayError(
+            `Failed to retrieve new token: ${
+              chrome.runtime.lastError?.message || "Unknown error"
+            }`
           );
-          document.getElementById(
-            "output"
-          ).textContent = `Failed to retrieve new token: ${
-            chrome.runtime.lastError
-              ? chrome.runtime.lastError.message
-              : "Unknown error"
-          }`;
-          document.getElementById("loadingMessage").style.display = "none";
           return;
         }
+
         console.log("New token:", newToken);
-        // Now that the token is available, proceed with your API request
-        fetchEmails(newToken, selectedFolders);
+        fetchEmails(newToken, selectedFolders); // Fetch emails with the new token
       });
     });
   });
 }
 
+// Fetch emails from Gmail API
 function fetchEmails(token, selectedFolders) {
-  fetch(
-    `https://www.googleapis.com/gmail/v1/users/me/messages?q=in:${selectedFolders}`,
-    {
-      headers: new Headers({ Authorization: "Bearer " + token }),
-    }
-  )
+  const apiURL = `https://www.googleapis.com/gmail/v1/users/me/messages?q=in:${selectedFolders}`;
+
+  fetch(apiURL, {
+    headers: new Headers({ Authorization: `Bearer ${token}` }),
+  })
     .then((response) => response.json())
     .then((data) => {
       const messageIds = data.messages
@@ -91,10 +76,7 @@ function fetchEmails(token, selectedFolders) {
         : [];
 
       if (messageIds.length === 0) {
-        document.getElementById("output").textContent =
-          "No messages found in the selected folder.";
-        document.getElementById("loadingMessage").style.display = "none";
-        document.getElementById("output").style.display = "block";
+        displayError("No messages found in the selected folder.");
         return;
       }
 
@@ -106,61 +88,45 @@ function fetchEmails(token, selectedFolders) {
         Others: [],
       };
 
-      let fetchPromises = messageIds.map((messageId) => {
-        return fetch(
+      // Fetch details for each message
+      const fetchPromises = messageIds.map((messageId) =>
+        fetch(
           `https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}`,
-          {
-            headers: new Headers({ Authorization: "Bearer " + token }),
-          }
+          { headers: new Headers({ Authorization: `Bearer ${token}` }) }
         )
           .then((response) => response.json())
-          .then((messageData) => {
-            // Process message data as before
-            processEmailData(messageData, categories);
-          })
+          .then((messageData) => processEmailData(messageData, categories))
           .catch((error) =>
             console.error("Error fetching message data:", error)
-          );
-      });
+          )
+      );
 
-      // Wait for all fetches to complete
+      // Process and display results once all fetches are complete
       Promise.all(fetchPromises).then(() => {
         displayCategorizedEmails(categories);
-        document.getElementById("loadingMessage").style.display = "none";
-        document.getElementById("output").style.display = "block";
-        adjustPopupSize();
+        toggleLoading(false); // Hide loading message
       });
     })
     .catch((error) => {
-      console.error("Error fetching email list: ", error);
-      document.getElementById("loadingMessage").style.display = "none";
+      console.error("Error fetching email list:", error);
+      displayError("Failed to fetch emails. Please try again.");
     });
 }
 
+// Process email data and categorize
 function processEmailData(messageData, categories) {
+  const headers = messageData.payload.headers;
   const subject =
-    messageData.payload.headers.find((header) => header.name === "Subject")
-      ?.value || "No Subject";
+    headers.find((header) => header.name === "Subject")?.value || "No Subject";
   const sender =
-    messageData.payload.headers.find((header) => header.name === "From")
-      ?.value || "Unknown Sender";
+    headers.find((header) => header.name === "From")?.value || "Unknown Sender";
   const date =
-    messageData.payload.headers.find((header) => header.name === "Date")
-      ?.value || "No Date";
-  const snippet = messageData.snippet || "No Snippet Available";
+    headers.find((header) => header.name === "Date")?.value || "No Date";
 
-  const emailData = {
-    subject,
-    sender,
-    date,
-    snippet,
-  };
+  const emailData = { subject, sender, date };
 
-  let body = "";
-  if (messageData.payload.parts && messageData.payload.parts[0].body) {
-    body = messageData.payload.parts[0].body.data || "";
-  }
-
+  // Decode email body for unsubscribe links
+  const body = messageData.payload.parts?.[0].body.data || "";
   if (body) {
     const decodedBody = atob(body.replace(/-/g, "+").replace(/_/g, "/"));
     const unsubscribeLink = decodedBody.match(
@@ -172,6 +138,7 @@ function processEmailData(messageData, categories) {
     }
   }
 
+  // Categorize email
   if (/newsletter/i.test(subject)) {
     categories.Newsletters.push(emailData);
   } else if (/deal|offer|promo/i.test(subject)) {
@@ -185,64 +152,18 @@ function processEmailData(messageData, categories) {
   }
 }
 
-function decodeEmailBody(parts) {
-  if (!parts || !parts[0]?.body?.data) return "";
-  return atob(parts[0].body.data.replace(/-/g, "+").replace(/_/g, "/"));
-}
-
-function extractUnsubscribeLink(body) {
-  const match = body.match(/<a[^>]+href="([^"]+unsubscribe[^"]+)"/i);
-  return match ? match[1] : null;
-}
-
-function analyzeSocialMedia() {
-  setTimeout(() => {
-    toggleLoading(false);
-    displayOutput("<p>Social Media analysis is not implemented yet.</p>");
-  }, 2000);
-}
-
-// Helper functions
-function getSelectedFolders() {
-  const folderSelect = document.getElementById("folderSelect");
-  if (!folderSelect) {
-    console.error("Folder select element not found");
-    return null;
-  }
-  return folderSelect.value || null;
-}
-
-function toggleLoading(isLoading) {
-  document.getElementById("loadingMessage").style.display = isLoading
-    ? "block"
-    : "none";
-  document.getElementById("output").style.display = isLoading
-    ? "none"
-    : "block";
-}
-
-function clearOutput() {
-  document.getElementById("output").innerHTML = "";
-}
-
-function displayError(message) {
-  toggleLoading(false);
-  document.getElementById("output").textContent = message;
-}
-
-function displayOutput(content) {
-  document.getElementById("output").innerHTML = content;
-}
-
+// Display categorized emails in a table
 function displayCategorizedEmails(categories) {
   const outputDiv = document.getElementById("output");
 
-  for (const [category, emails] of Object.entries(categories)) {
+  Object.entries(categories).forEach(([category, emails]) => {
     if (emails.length > 0) {
+      // Create category header
       const categoryHeader = document.createElement("h3");
       categoryHeader.textContent = category;
       outputDiv.appendChild(categoryHeader);
 
+      // Create table for emails
       const table = document.createElement("table");
       table.innerHTML = `
         <thead>
@@ -250,31 +171,62 @@ function displayCategorizedEmails(categories) {
             <th>Subject</th>
             <th>Sender</th>
             <th>Date</th>
-            <th>Snippet</th>
             <th>Unsubscribe</th>
           </tr>
         </thead>
         <tbody></tbody>
       `;
 
+      // Populate table rows
       emails
         .sort((a, b) => new Date(b.date) - new Date(a.date))
         .forEach((email) => {
           const row = table.insertRow();
           row.innerHTML = `
-          <td>${email.subject}</td>
-          <td>${email.sender}</td>
-          <td>${email.date}</td>
-          <td>${email.snippet}</td>
-          <td>${
-            email.unsubscribeLink
-              ? `<button onclick="window.open('${email.unsubscribeLink}', '_blank')">Unsubscribe</button>`
-              : "No link"
-          }</td>
-        `;
+            <td>${email.subject}</td>
+            <td>${email.sender}</td>
+            <td>${email.date}</td>
+            <td>${
+              email.unsubscribeLink
+                ? `<button onclick="window.open('${email.unsubscribeLink}', '_blank')">Unsubscribe</button>`
+                : "No link"
+            }</td>
+          `;
         });
 
       outputDiv.appendChild(table);
     }
-  }
+  });
+
+  outputDiv.style.display = "block"; // Show output
+}
+
+// Utility functions
+function toggleLoading(isLoading) {
+  document.getElementById("loadingMessage").style.display = isLoading
+    ? "block"
+    : "none";
+}
+
+function clearOutput() {
+  const outputDiv = document.getElementById("output");
+  outputDiv.innerHTML = ""; // Clear previous content
+  outputDiv.style.display = "none";
+}
+
+function displayError(message) {
+  toggleLoading(false);
+  const outputDiv = document.getElementById("output");
+  outputDiv.textContent = message;
+  outputDiv.style.display = "block";
+}
+
+function getSelectedFolders() {
+  const folderSelect = document.getElementById("folderSelect");
+  return folderSelect.value || null;
+}
+
+function adjustPopupSize() {
+  // Adjust popup size dynamically (optional)
+  console.log("Adjust popup size");
 }
