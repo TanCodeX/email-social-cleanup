@@ -1,16 +1,20 @@
-document.getElementById("analyzeEmail").addEventListener("click", function () {
-  handleAnalyzeClick("email");
-});
+// Attach event listeners
+function init() {
+  document
+    .getElementById("analyzeEmail")
+    .addEventListener("click", () => handleAnalyzeClick("email"));
+  document
+    .getElementById("analyzeSocial")
+    .addEventListener("click", () => handleAnalyzeClick("social"));
+}
 
-document.getElementById("analyzeSocial").addEventListener("click", function () {
-  handleAnalyzeClick("social");
-});
+document.addEventListener("DOMContentLoaded", init);
 
+// Handle analyze button clicks
 function handleAnalyzeClick(type) {
   // Show loading message and hide output
-  document.getElementById("loadingMessage").style.display = "block";
-  document.getElementById("output").style.display = "none";
-  document.getElementById("output").innerHTML = ""; // Clear previous output
+  toggleLoading(true);
+  clearOutput();
 
   if (type === "email") {
     analyzeEmails();
@@ -34,242 +38,243 @@ function analyzeEmails() {
   chrome.identity.getAuthToken({ interactive: true }, function (token) {
     if (chrome.runtime.lastError || !token) {
       console.error("Error retrieving token:", chrome.runtime.lastError);
-      document.getElementById("output").textContent =
-        "Failed to retrieve Google token.";
+      document.getElementById(
+        "output"
+      ).textContent = `Failed to retrieve Google token: ${
+        chrome.runtime.lastError
+          ? chrome.runtime.lastError.message
+          : "Unknown error"
+      }`;
       document.getElementById("loadingMessage").style.display = "none";
       return;
     }
 
-    // Now that the token is available, proceed with your API request
-    fetch(
-      `https://www.googleapis.com/gmail/v1/users/me/messages?q=in:${selectedFolders}`,
-      {
-        headers: new Headers({ Authorization: "Bearer " + token }),
-      }
-    )
-      .then((response) => response.json())
-      .then((data) => {
-        const messageIds = data.messages
-          ? data.messages.map((msg) => msg.id)
-          : [];
+    // Log the token for debugging
+    console.log("Retrieved token:", token);
 
-        if (messageIds.length === 0) {
-          document.getElementById("output").textContent =
-            "No messages found in the selected folder.";
+    chrome.identity.removeCachedAuthToken({ token }, function () {
+      chrome.identity.getAuthToken({ interactive: true }, function (newToken) {
+        if (chrome.runtime.lastError || !newToken) {
+          console.error(
+            "Error retrieving new token:",
+            chrome.runtime.lastError
+          );
+          document.getElementById(
+            "output"
+          ).textContent = `Failed to retrieve new token: ${
+            chrome.runtime.lastError
+              ? chrome.runtime.lastError.message
+              : "Unknown error"
+          }`;
           document.getElementById("loadingMessage").style.display = "none";
-          document.getElementById("output").style.display = "block";
           return;
         }
-
-        const categories = {
-          Newsletters: [],
-          Promotions: [],
-          "Social Media Notifications": [],
-          "Transactional Emails": [],
-          Others: [],
-        };
-
-        let fetchPromises = messageIds.map((messageId) => {
-          return fetch(
-            `https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}`,
-            {
-              headers: new Headers({ Authorization: "Bearer " + token }),
-            }
-          )
-            .then((response) => response.json())
-            .then((messageData) => {
-              const subject =
-                messageData.payload.headers.find(
-                  (header) => header.name === "Subject"
-                )?.value || "No Subject";
-              const sender =
-                messageData.payload.headers.find(
-                  (header) => header.name === "From"
-                )?.value || "Unknown Sender";
-              const date =
-                messageData.payload.headers.find(
-                  (header) => header.name === "Date"
-                )?.value || "No Date";
-              const snippet = messageData.snippet || "No Snippet Available";
-
-              const emailData = {
-                subject,
-                sender,
-                date,
-                snippet,
-              };
-
-              // Check for Unsubscribe Link (added check for undefined body)
-              let body = "";
-              if (
-                messageData.payload.parts &&
-                messageData.payload.parts[0].body
-              ) {
-                body = messageData.payload.parts[0].body.data || "";
-              }
-
-              if (body) {
-                const decodedBody = atob(
-                  body.replace(/-/g, "+").replace(/_/g, "/")
-                );
-                const unsubscribeLink = decodedBody.match(
-                  /<a[^>]+href="([^"]+unsubscribe[^"]+)"/i
-                );
-
-                if (unsubscribeLink) {
-                  emailData.unsubscribeLink = unsubscribeLink[1];
-                }
-              }
-
-              // Categorize emails based on subject keywords
-              if (/newsletter/i.test(subject)) {
-                categories.Newsletters.push(emailData);
-              } else if (/deal|offer|promo/i.test(subject)) {
-                categories.Promotions.push(emailData);
-              } else if (/facebook|twitter|linkedin/i.test(subject)) {
-                categories["Social Media Notifications"].push(emailData);
-              } else if (/receipt|invoice|payment/i.test(subject)) {
-                categories["Transactional Emails"].push(emailData);
-              } else {
-                categories.Others.push(emailData);
-              }
-            })
-            .catch((error) =>
-              console.error("Error fetching message data:", error)
-            );
-        });
-
-        // Wait for all fetches to complete
-        Promise.all(fetchPromises).then(() => {
-          displayCategorizedEmails(categories);
-          document.getElementById("loadingMessage").style.display = "none";
-          document.getElementById("output").style.display = "block";
-          adjustPopupSize();
-        });
-      })
-      .catch((error) => {
-        console.error("Error fetching email list: ", error);
-        document.getElementById("loadingMessage").style.display = "none";
+        console.log("New token:", newToken);
+        // Now that the token is available, proceed with your API request
+        fetchEmails(newToken, selectedFolders);
       });
+    });
   });
 }
 
-function analyzeSocialMedia() {
-  // Placeholder function for social media analysis
-  setTimeout(() => {
-    document.getElementById("loadingMessage").style.display = "none";
-    document.getElementById("output").innerHTML =
-      "<p>Social Media analysis is not implemented yet.</p>";
-    document.getElementById("output").style.display = "block";
-    adjustPopupSize();
-  }, 2000); // Simulate a 2-second delay
+function fetchEmails(token, selectedFolders) {
+  fetch(
+    `https://www.googleapis.com/gmail/v1/users/me/messages?q=in:${selectedFolders}`,
+    {
+      headers: new Headers({ Authorization: "Bearer " + token }),
+    }
+  )
+    .then((response) => response.json())
+    .then((data) => {
+      const messageIds = data.messages
+        ? data.messages.map((msg) => msg.id)
+        : [];
+
+      if (messageIds.length === 0) {
+        document.getElementById("output").textContent =
+          "No messages found in the selected folder.";
+        document.getElementById("loadingMessage").style.display = "none";
+        document.getElementById("output").style.display = "block";
+        return;
+      }
+
+      const categories = {
+        Newsletters: [],
+        Promotions: [],
+        "Social Media Notifications": [],
+        "Transactional Emails": [],
+        Others: [],
+      };
+
+      let fetchPromises = messageIds.map((messageId) => {
+        return fetch(
+          `https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}`,
+          {
+            headers: new Headers({ Authorization: "Bearer " + token }),
+          }
+        )
+          .then((response) => response.json())
+          .then((messageData) => {
+            // Process message data as before
+            processEmailData(messageData, categories);
+          })
+          .catch((error) =>
+            console.error("Error fetching message data:", error)
+          );
+      });
+
+      // Wait for all fetches to complete
+      Promise.all(fetchPromises).then(() => {
+        displayCategorizedEmails(categories);
+        document.getElementById("loadingMessage").style.display = "none";
+        document.getElementById("output").style.display = "block";
+        adjustPopupSize();
+      });
+    })
+    .catch((error) => {
+      console.error("Error fetching email list: ", error);
+      document.getElementById("loadingMessage").style.display = "none";
+    });
 }
 
+function processEmailData(messageData, categories) {
+  const subject =
+    messageData.payload.headers.find((header) => header.name === "Subject")
+      ?.value || "No Subject";
+  const sender =
+    messageData.payload.headers.find((header) => header.name === "From")
+      ?.value || "Unknown Sender";
+  const date =
+    messageData.payload.headers.find((header) => header.name === "Date")
+      ?.value || "No Date";
+  const snippet = messageData.snippet || "No Snippet Available";
+
+  const emailData = {
+    subject,
+    sender,
+    date,
+    snippet,
+  };
+
+  let body = "";
+  if (messageData.payload.parts && messageData.payload.parts[0].body) {
+    body = messageData.payload.parts[0].body.data || "";
+  }
+
+  if (body) {
+    const decodedBody = atob(body.replace(/-/g, "+").replace(/_/g, "/"));
+    const unsubscribeLink = decodedBody.match(
+      /<a[^>]+href="([^"]+unsubscribe[^"]+)"/i
+    );
+
+    if (unsubscribeLink) {
+      emailData.unsubscribeLink = unsubscribeLink[1];
+    }
+  }
+
+  if (/newsletter/i.test(subject)) {
+    categories.Newsletters.push(emailData);
+  } else if (/deal|offer|promo/i.test(subject)) {
+    categories.Promotions.push(emailData);
+  } else if (/facebook|twitter|linkedin/i.test(subject)) {
+    categories["Social Media Notifications"].push(emailData);
+  } else if (/receipt|invoice|payment/i.test(subject)) {
+    categories["Transactional Emails"].push(emailData);
+  } else {
+    categories.Others.push(emailData);
+  }
+}
+
+function decodeEmailBody(parts) {
+  if (!parts || !parts[0]?.body?.data) return "";
+  return atob(parts[0].body.data.replace(/-/g, "+").replace(/_/g, "/"));
+}
+
+function extractUnsubscribeLink(body) {
+  const match = body.match(/<a[^>]+href="([^"]+unsubscribe[^"]+)"/i);
+  return match ? match[1] : null;
+}
+
+function analyzeSocialMedia() {
+  setTimeout(() => {
+    toggleLoading(false);
+    displayOutput("<p>Social Media analysis is not implemented yet.</p>");
+  }, 2000);
+}
+
+// Helper functions
 function getSelectedFolders() {
   const folderSelect = document.getElementById("folderSelect");
   if (!folderSelect) {
     console.error("Folder select element not found");
     return null;
   }
+  return folderSelect.value || null;
+}
 
-  const selectedFolder = folderSelect.value;
+function toggleLoading(isLoading) {
+  document.getElementById("loadingMessage").style.display = isLoading
+    ? "block"
+    : "none";
+  document.getElementById("output").style.display = isLoading
+    ? "none"
+    : "block";
+}
 
-  if (!selectedFolder) {
-    console.error("No folder selected.");
-    return null;
-  }
+function clearOutput() {
+  document.getElementById("output").innerHTML = "";
+}
 
-  return selectedFolder;
+function displayError(message) {
+  toggleLoading(false);
+  document.getElementById("output").textContent = message;
+}
+
+function displayOutput(content) {
+  document.getElementById("output").innerHTML = content;
 }
 
 function displayCategorizedEmails(categories) {
   const outputDiv = document.getElementById("output");
 
-  for (const category in categories) {
-    if (categories[category].length > 0) {
-      // Create category header
+  for (const [category, emails] of Object.entries(categories)) {
+    if (emails.length > 0) {
       const categoryHeader = document.createElement("h3");
       categoryHeader.textContent = category;
       outputDiv.appendChild(categoryHeader);
 
-      // Create table for the category
       const table = document.createElement("table");
-      table.id = `${category.replace(/\s+/g, "")}Table`;
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th>Subject</th>
+            <th>Sender</th>
+            <th>Date</th>
+            <th>Snippet</th>
+            <th>Unsubscribe</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      `;
 
-      // Insert header row
-      const headerRow = table.insertRow();
-      headerRow.insertCell(0).textContent = "Subject";
-      headerRow.insertCell(1).textContent = "Sender";
-      headerRow.insertCell(2).textContent = "Date";
-      headerRow.insertCell(3).textContent = "Snippet";
-      headerRow.insertCell(4).textContent = "Promotion";
-      headerRow.insertCell(5).textContent = "Inactive";
-      headerRow.insertCell(6).textContent = "Unsubscribe";  // Unsubscribe heading inside the table
+      emails
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .forEach((email) => {
+          const row = table.insertRow();
+          row.innerHTML = `
+          <td>${email.subject}</td>
+          <td>${email.sender}</td>
+          <td>${email.date}</td>
+          <td>${email.snippet}</td>
+          <td>${
+            email.unsubscribeLink
+              ? `<button onclick="window.open('${email.unsubscribeLink}', '_blank')">Unsubscribe</button>`
+              : "No link"
+          }</td>
+        `;
+        });
 
-      // Sort emails by date (newest first)
-      categories[category].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-      // Insert data rows
-      categories[category].forEach((email) => {
-        const row = table.insertRow();
-        row.insertCell(0).textContent = email.subject;
-        row.insertCell(1).textContent = email.sender;
-        row.insertCell(2).textContent = email.date;
-        row.insertCell(3).textContent = email.snippet;
-        row.insertCell(4).textContent = isPromotion(email.subject) ? "Yes" : "No";
-        row.insertCell(5).textContent = isInactive(email.labelIds) ? "Yes" : "No";
-
-        // Unsubscribe Button
-        const unsubscribeCell = row.insertCell(6);  // Correct column index
-        if (email.unsubscribeLink) {
-          const unsubscribeButton = document.createElement("button");
-          unsubscribeButton.textContent = "Unsubscribe";
-          unsubscribeButton.onclick = function () {
-            window.open(email.unsubscribeLink, "_blank");
-          };
-          unsubscribeCell.appendChild(unsubscribeButton);
-        } else {
-          unsubscribeCell.textContent = "No link";
-        }
-      });
-
-      outputDiv.appendChild(table);  // Add table to the output div
+      outputDiv.appendChild(table);
     }
   }
-}
-
-
-function isPromotion(subject) {
-  return /deal|newsletter|offer/i.test(subject);
-}
-
-function isInactive(labelIds) {
-  return !labelIds || labelIds.includes("SENT");
-}
-
-function adjustPopupSize() {
-  const output = document.getElementById("output");
-  const contentHeight = output.scrollHeight + 200; // Added padding for header and button
-  const contentWidth = 800; // Increased width to avoid horizontal scrolling
-
-  const minHeight = 300; // Increased height for larger content area
-  const minWidth = 600; // Increased minimum width to accommodate larger tables
-
-  const finalHeight = Math.max(contentHeight, minHeight);
-  const finalWidth = Math.max(contentWidth, minWidth);
-
-  chrome.windows.getCurrent((window) => {
-    const windowHeight = Math.max(window.height, finalHeight);
-    const windowWidth = Math.max(window.width, finalWidth);
-
-    const newLeft = Math.max(window.left, 0);
-    const newTop = Math.max(window.top, 0);
-
-    chrome.windows.update(window.id, {
-      width: windowWidth,
-      height: windowHeight,
-      left: newLeft,
-      top: newTop,
-    });
-  });
 }
