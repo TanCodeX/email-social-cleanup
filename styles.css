@@ -13,7 +13,7 @@ body {
   padding: 30px; /* More padding for spaciousness */
   width: 800px; /* Increased width for the larger popup */
   min-height: 350px; /* Increased minimum height */
-  overflow: hidden;
+  overflow: hidden; /* Remove scrollbars */
   border-radius: 16px; /* Larger curved edges */
   box-sizing: border-box; /* Ensures padding doesn't affect width */
 }
@@ -76,10 +76,11 @@ button:hover {
 /* Output Table Styles */
 #output {
   margin-top: 20px;
+  padding-right: 100px;
   text-align: left;
   display: flex;
   justify-content: center;
-  max-height: 250px; /* Set a max height for scrolling */
+  max-height: 280px; /* Set a max height for scrolling */
   overflow-y: auto; /* Allow vertical scrolling */
   width: 100%;
 }
