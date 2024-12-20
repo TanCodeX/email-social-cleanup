@@ -114,16 +114,32 @@ function fetchEmails(token, selectedFolders) {
 }
 
 // Process email data and categorize
+// Process email data and categorize
 function processEmailData(messageData, categories) {
   const headers = messageData.payload.headers;
   const subject =
     headers.find((header) => header.name === "Subject")?.value || "No Subject";
   const sender =
     headers.find((header) => header.name === "From")?.value || "Unknown Sender";
-  const date =
+  let date =
     headers.find((header) => header.name === "Date")?.value || "No Date";
 
-  const emailData = { subject, sender, date };
+  // Convert the Gmail date format to a JavaScript Date object
+  const emailDate = new Date(date);
+
+  // Adjust the time zone for the email's timestamp (show the full date/time like Gmail)
+  const formattedDate = emailDate.toLocaleString("en-US", {
+    weekday: "short", // e.g., "Thu"
+    year: "numeric",  // e.g., "2024"
+    month: "short",   // e.g., "Dec"
+    day: "numeric",   // e.g., "20"
+    hour: "numeric",  // e.g., "3"
+    minute: "numeric",// e.g., "00"
+    second: "numeric",// e.g., "00"
+    hour12: true,     // 12-hour format with AM/PM
+  });
+
+  const emailData = { subject, sender, date: formattedDate };
 
   // Decode email body for unsubscribe links
   const body = messageData.payload.parts?.[0].body.data || "";
@@ -152,12 +168,17 @@ function processEmailData(messageData, categories) {
   }
 }
 
-// Display categorized emails in a table
+
+// Display categorized emails with "See More" functionality
+// Updated display function to load emails dynamically
 function displayCategorizedEmails(categories) {
   const outputDiv = document.getElementById("output");
+  outputDiv.innerHTML = ""; // Clear previous content
 
   Object.entries(categories).forEach(([category, emails]) => {
     if (emails.length > 0) {
+      let displayedCount = 5; // Initially show only 5 emails
+
       // Create category header
       const categoryHeader = document.createElement("h3");
       categoryHeader.textContent = category;
@@ -177,28 +198,112 @@ function displayCategorizedEmails(categories) {
         <tbody></tbody>
       `;
 
-      // Populate table rows
-      emails
-        .sort((a, b) => new Date(b.date) - new Date(a.date))
-        .forEach((email) => {
-          const row = table.insertRow();
-          row.innerHTML = `
-            <td>${email.subject}</td>
-            <td>${email.sender}</td>
-            <td>${email.date}</td>
-            <td>${
-              email.unsubscribeLink
-                ? `<button onclick="window.open('${email.unsubscribeLink}', '_blank')">Unsubscribe</button>`
-                : "No link"
-            }</td>
-          `;
-        });
-
+      const tableBody = table.querySelector("tbody");
       outputDiv.appendChild(table);
+
+      // Function to render emails dynamically
+      function renderEmails() {
+        const currentBatch = emails.slice(0, displayedCount);
+        tableBody.innerHTML = ""; // Clear the table body before re-rendering
+
+        currentBatch
+          .sort((a, b) => new Date(b.date) - new Date(a.date)) // Sort emails by date
+          .forEach((email) => {
+            const row = tableBody.insertRow();
+            row.innerHTML = `
+              <td>${email.subject}</td>
+              <td>${email.sender}</td>
+              <td>${email.date}</td>
+              <td>${
+                email.unsubscribeLink
+                  ? `<button onclick="window.open('${email.unsubscribeLink}', '_blank')">Unsubscribe</button>`
+                  : "No link"
+              }</td>
+            `;
+          });
+
+        // Check if all emails are displayed
+        if (displayedCount >= emails.length) {
+          seeMoreButton.style.display = "none"; // Hide the button
+        } else {
+          seeMoreButton.style.display = "block"; // Ensure it's visible
+        }
+      }
+
+      // Create the "See More" button
+      const seeMoreButton = document.createElement("button");
+      seeMoreButton.textContent = "See More";
+      seeMoreButton.style.margin = "10px auto"; // Center align button
+      seeMoreButton.style.display = "block"; // Block element for centering
+      seeMoreButton.style.padding = "8px 12px";
+      seeMoreButton.style.backgroundColor = "#8336ff";
+      seeMoreButton.style.color = "white";
+      seeMoreButton.style.border = "none";
+      seeMoreButton.style.cursor = "pointer";
+      seeMoreButton.style.borderRadius = "4px";
+
+      // Add click event listener to load more emails
+      seeMoreButton.addEventListener("click", () => {
+        displayedCount += 5; // Load 5 more emails
+        renderEmails(); // Re-render emails
+      });
+
+      // Append the "See More" button outside the table
+      outputDiv.appendChild(seeMoreButton);
+
+      // Initial rendering of emails
+      renderEmails();
     }
   });
 
-  outputDiv.style.display = "block"; // Show output
+  outputDiv.style.display = "block"; // Ensure the output is visible
+}
+
+// Utility function to format date nicely
+function formatDate(dateString) {
+  const options = {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  };
+  return new Date(dateString).toLocaleDateString(undefined, options);
+}
+
+// Function to render emails into the table
+/*function renderEmails(table, emails) {
+  const tbody = table.querySelector("tbody");
+  emails.forEach((email) => {
+    const row = `
+      <tr>
+        <td>${email.subject}</td>
+        <td>${email.sender}</td>
+        <td>${email.date}</td>
+        <td>${
+          email.unsubscribeLink
+            ? `<button onclick="window.open('${email.unsubscribeLink}', '_blank')">Unsubscribe</button>`
+            : "No link"
+        }</td>
+      </tr>
+    `;
+    tbody.insertAdjacentHTML("beforeend", row);
+  });
+}*/
+
+// Function to handle "See More" functionality
+function showMoreEmails(table, emails, button) {
+  const tbody = table.querySelector("tbody");
+  const currentRowCount = tbody.rows.length;
+
+  // Determine the next batch of emails to display
+  const nextBatch = emails.slice(currentRowCount, currentRowCount + 5);
+  renderEmails(table, nextBatch);
+
+  // Remove "See More" button if all emails are displayed
+  if (currentRowCount + nextBatch.length >= emails.length) {
+    button.remove();
+  }
 }
 
 // Utility functions
