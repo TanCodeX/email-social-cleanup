@@ -1,47 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Email Cleanup Assistant</title>
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <h2>Email Cleanup Assistant</h2>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="main-heading">
+            <span>Email Cleanup Assistant</span>
+        </h1>
 
-    <p>Please select what you would like to analyze:</p>
-    <select id="folderSelect">
-      <option value="inbox">Inbox</option>
-      <option value="sent">Sent</option>
-      <option value="drafts">Drafts</option>
-      <!-- Add other folders here -->
-    </select>
+        <p>Please select what you would like to analyze:</p>
+        <div class="select-wrapper">
+            <select id="folderSelect">
+                <option value="inbox">Inbox</option>
+                <option value="sent">Sent</option>
+                <option value="drafts">Drafts</option>
+                <option value="archive">Archive</option>
+                <option value="spam">Spam</option>
+            </select>
+        </div>
 
-    <div class="button-container">
-      <button id="analyzeEmail">Analyze Emails</button>
-      <button id="unsubscribeEmail" style="display: none">
-        Unsubscribe from Newsletter
-      </button>
-    </div>
+        <div class="button-container">
+            <button id="analyzeEmail">Analyze Emails</button>
+            <button id="unsubscribeEmail" class="unsubscribe-btn" style="display: none">
+                Unsubscribe from Newsletter
+            </button>
+        </div>
 
-    <div id="loadingMessage" style="display: none">Please wait, loading...</div>
+        <div id="loadingMessage" class="loading-message" style="display: none">
+            Please wait, loading...
+        </div>
 
-    <div id="output" style="display: none">
-      <table id="emailTable">
-        <thead>
-          <tr>
-            <th>Email Subject</th>
-            <th>Category</th>
-            <th>Sender</th>
-            <th>Date</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- Table content will be dynamically generated -->
-        </tbody>
-      </table>
+        <div id="output" class="output-container" style="display: none">
+            <div class="table-wrapper">
+                <table id="emailTable">
+                    <thead>
+                        <tr>
+                            <th>Email Subject</th>
+                            <th>Category</th>
+                            <th>Sender</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Table content will be dynamically generated -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <script src="popup.js"></script>
-  </body>
+</body>
 </html>
+
