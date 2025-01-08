@@ -2,11 +2,11 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Email & Social Media Cleanup Assistant</title>
+    <title>Email Cleanup Assistant</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <h2>Email & Social Media Cleanup</h2>
+    <h2>Email Cleanup Assistant</h2>
 
     <p>Please select what you would like to analyze:</p>
     <select id="folderSelect">
@@ -18,7 +18,6 @@
 
     <div class="button-container">
       <button id="analyzeEmail">Analyze Emails</button>
-      <button id="analyzeSocial">Analyze Social Media</button>
       <button id="unsubscribeEmail" style="display: none">
         Unsubscribe from Newsletter
       </button>
@@ -28,7 +27,18 @@
 
     <div id="output" style="display: none">
       <table id="emailTable">
-        <!-- Table content will be dynamically generated -->
+        <thead>
+          <tr>
+            <th>Email Subject</th>
+            <th>Category</th>
+            <th>Sender</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Table content will be dynamically generated -->
+        </tbody>
       </table>
     </div>
 
